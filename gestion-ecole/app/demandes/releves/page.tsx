@@ -1,22 +1,26 @@
 'use client';
 import { useState, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { createDemande } from "@/lib/demandes";
+import { useRouter } from "next/navigation";
 
 export default function RelevesPage() {
+  const { user, profile } = useAuth();
+  const router = useRouter();
   const niveaux = ["L1", "L2", "L3", "M1", "M2"];
   const prixParReleve = 2000;
   const currentYear = new Date().getFullYear();
 
-  const [formData, setFormData] = useState(
+  const [formData, setFormData] = useState<Record<string, { selected: boolean; annee: string; nombre: string }>>(
     niveaux.reduce((acc, level) => {
       acc[level] = { selected: false, annee: "", nombre: "" };
       return acc;
-    }, {})
+    }, {} as Record<string, { selected: boolean; annee: string; nombre: string }>)
   );
 
-  const [nom, setNom] = useState("");
-  const [numero, setNumero] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (level, field, value) => {
+  const handleChange = (level: string, field: string, value: any) => {
     setFormData({ ...formData, [level]: { ...formData[level], [field]: value } });
   };
 
@@ -28,9 +32,44 @@ export default function RelevesPage() {
 
   const totalPrix = totalReleves * prixParReleve;
 
-  const handleSubmit = () => {
-    console.log({ nom, numero, ...formData });
-    alert("Demande envoyée avec succès !");
+  const handleSubmit = async () => {
+    if (!user) {
+      alert("Veuillez vous connecter pour faire une demande");
+      router.push('/login');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const relevesDetails = Object.entries(formData)
+        .filter(([_, data]: any) => data.selected)
+        .map(([niveau, data]: any) => ({
+          niveau,
+          annee: data.annee,
+          nombre: parseInt(data.nombre) || 0
+        }));
+
+      if (relevesDetails.length === 0) {
+        alert("Veuillez sélectionner au moins un relevé");
+        setLoading(false);
+        return;
+      }
+
+      await createDemande('releve', null, {
+        releves: relevesDetails,
+        total: totalPrix,
+        nom_complet: profile?.nom_complet,
+        numero_inscription: profile?.numero_inscription
+      });
+
+      alert("Demande envoyée avec succès !");
+      router.push('/mes-demandes');
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de l'envoi de la demande");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -46,10 +85,9 @@ export default function RelevesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
               <input
                 type="text"
-                placeholder="Ex: RAKOTO Jean"
-                value={nom}
-                onChange={(e) => setNom(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                value={profile?.nom_complet || ''}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
               />
             </div>
 
@@ -57,10 +95,9 @@ export default function RelevesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">N° d'inscription</label>
               <input
                 type="text"
-                placeholder="Ex: 2024-001"
-                value={numero}
-                onChange={(e) => setNumero(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                value={profile?.numero_inscription || ''}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
               />
             </div>
           </div>
@@ -111,7 +148,7 @@ export default function RelevesPage() {
                           <label className="block text-sm text-gray-600 mb-1">Année académique</label>
                           <input
                             type="number"
-                            placeholder={currentYear}
+                            placeholder={currentYear.toString()}
                             value={formData[level].annee}
                             onClick={(e) => e.stopPropagation()}
                             onChange={(e) => handleChange(level, "annee", e.target.value)}
@@ -147,9 +184,10 @@ export default function RelevesPage() {
 
             <button
               onClick={handleSubmit}
-              className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-xl text-lg transition"
+              disabled={loading || !user}
+              className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-xl text-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Envoyer la demande
+              {loading ? 'Envoi...' : 'Envoyer la demande'}
             </button>
           </div>
         </div>

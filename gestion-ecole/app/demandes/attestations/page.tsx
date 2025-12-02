@@ -1,7 +1,12 @@
 'use client';
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { createDemande } from "@/lib/demandes";
+import { useRouter } from "next/navigation";
 
 export default function AttestationPage() {
+  const { user, profile } = useAuth();
+  const router = useRouter();
   const typesAttestation = [
     { id: "reussite", label: "Attestation de réussite" },
     { id: "findetude", label: "Attestation de fin d'étude" },
@@ -11,17 +16,42 @@ export default function AttestationPage() {
   ];
 
   const [selectedType, setSelectedType] = useState("");
-  const [nom, setNom] = useState("");
-  const [numero, setNumero] = useState("");
   const [anneeDebut, setAnneeDebut] = useState("");
   const [anneeFin, setAnneeFin] = useState("");
+  const [loading, setLoading] = useState(false);
   
   const currentYear = new Date().getFullYear();
 
-  const handleSubmit = () => {
-    const anneeUniversitaire = anneeDebut && anneeFin ? `${anneeDebut}-${anneeFin}` : "";
-    console.log({ type: selectedType, nom, numero, anneeUniversitaire });
-    alert("Demande envoyée avec succès !");
+  const handleSubmit = async () => {
+    if (!user) {
+      alert("Veuillez vous connecter pour faire une demande");
+      router.push('/login');
+      return;
+    }
+
+    if (!selectedType) {
+      alert("Veuillez sélectionner un type d'attestation");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const anneeUniversitaire = anneeDebut && anneeFin ? `${anneeDebut}-${anneeFin}` : "";
+
+      await createDemande('attestation', selectedType, {
+        annee_universitaire: anneeUniversitaire,
+        nom_complet: profile?.nom_complet,
+        numero_inscription: profile?.numero_inscription
+      });
+
+      alert("Demande envoyée avec succès !");
+      router.push('/mes-demandes');
+    } catch (error) {
+      console.error(error);
+      alert("Erreur lors de l'envoi de la demande");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,10 +67,9 @@ export default function AttestationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Nom complet</label>
               <input
                 type="text"
-                placeholder="Ex: RAKOTO Jean"
-                value={nom}
-                onChange={(e) => setNom(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                value={profile?.nom_complet || ''}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
               />
             </div>
 
@@ -48,10 +77,9 @@ export default function AttestationPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">N° d'inscription</label>
               <input
                 type="text"
-                placeholder="Ex: 2024-001"
-                value={numero}
-                onChange={(e) => setNumero(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg"
+                value={profile?.numero_inscription || ''}
+                disabled
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50"
               />
             </div>
           </div>
@@ -100,7 +128,7 @@ export default function AttestationPage() {
                               const value = e.target.value.replace(/\D/g, '').slice(0, 4);
                               setAnneeDebut(value);
                             }}
-                            maxLength="4"
+                            maxLength={4}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                           />
                           <span className="text-gray-500 font-medium">-</span>
@@ -113,7 +141,7 @@ export default function AttestationPage() {
                               const value = e.target.value.replace(/\D/g, '').slice(0, 4);
                               setAnneeFin(value);
                             }}
-                            maxLength="4"
+                            maxLength={4}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                           />
                         </div>
@@ -131,9 +159,10 @@ export default function AttestationPage() {
           <div className="flex justify-center">
             <button
               onClick={handleSubmit}
-              className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-xl text-lg transition"
+              disabled={loading || !user}
+              className="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-xl text-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Envoyer la demande
+              {loading ? 'Envoi...' : 'Envoyer la demande'}
             </button>
           </div>
         </div>
