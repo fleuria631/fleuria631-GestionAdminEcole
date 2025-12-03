@@ -1,68 +1,68 @@
-import { supabase } from './supabase';
-import type { Demande } from './supabase';
+import { storageService, type Demande } from './storage';
+import { getCurrentUser } from './auth';
+
+function generateId() {
+  return Math.random().toString(36).substr(2, 9);
+}
 
 export async function createDemande(
   type_demande: 'releve' | 'attestation' | 'certificat',
   sous_type: string | null,
   details: Record<string, any>
 ) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) throw new Error('Non authentifié');
 
-  const { data, error } = await supabase
-    .from('demandes')
-    .insert({
-      user_id: user.id,
-      type_demande,
-      sous_type,
-      details,
-      statut: 'en_attente'
-    })
-    .select()
-    .single();
+  const demandes = storageService.getDemandes();
+  const newDemande: Demande = {
+    id: generateId(),
+    user_id: user.id,
+    type_demande,
+    sous_type,
+    details,
+    statut: 'en_attente',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
 
-  if (error) throw error;
-  return data;
+  demandes.push(newDemande);
+  storageService.saveDemandes(demandes);
+
+  return newDemande;
 }
 
 export async function getMyDemandes() {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) throw new Error('Non authentifié');
 
-  const { data, error } = await supabase
-    .from('demandes')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data as Demande[];
+  const demandes = storageService.getDemandes();
+  return demandes
+    .filter(d => d.user_id === user.id)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function getAllDemandes() {
-  const { data, error } = await supabase
-    .from('demandes')
-    .select(`
-      *,
-      profiles:user_id (
-        nom_complet,
-        numero_inscription
-      )
-    `)
-    .order('created_at', { ascending: false });
+  const demandes = storageService.getDemandes();
+  const profiles = storageService.getProfiles();
 
-  if (error) throw error;
-  return data;
+  return demandes
+    .map(d => ({
+      ...d,
+      profiles: profiles.find(p => p.id === d.user_id) || { nom_complet: '', numero_inscription: '' }
+    }))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 
 export async function updateDemandeStatut(demandeId: string, statut: 'en_attente' | 'en_cours' | 'terminee') {
-  const { data, error } = await supabase
-    .from('demandes')
-    .update({ statut })
-    .eq('id', demandeId)
-    .select()
-    .single();
+  const demandes = storageService.getDemandes();
+  const index = demandes.findIndex(d => d.id === demandeId);
 
-  if (error) throw error;
-  return data;
+  if (index === -1) throw new Error('Demande non trouvée');
+
+  demandes[index].statut = statut;
+  demandes[index].updated_at = new Date().toISOString();
+
+  storageService.saveDemandes(demandes);
+
+  return demandes[index];
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMyDemandes } from "@/lib/demandes";
 import { useRouter } from "next/navigation";
-import type { Demande } from "@/lib/supabase";
+import type { Demande } from "@/lib/storage";
 
 export default function MesDemandesPage() {
   const { user, loading: authLoading } = useAuth();

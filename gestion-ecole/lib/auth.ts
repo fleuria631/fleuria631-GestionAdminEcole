@@ -1,50 +1,80 @@
-import { supabase } from './supabase';
+import { storageService, type User, type Profile } from './storage';
 
-export async function signUp(email: string, password: string, nom_complet: string, numero_inscription: string, role: 'etudiant' | 'admin' = 'etudiant') {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        nom_complet,
-        numero_inscription,
-        role
-      }
+function generateId() {
+  return Math.random().toString(36).substr(2, 9);
+}
+
+export async function signUp(
+  email: string,
+  password: string,
+  nom_complet: string,
+  numero_inscription: string,
+  role: 'etudiant' | 'admin' = 'etudiant'
+) {
+  try {
+    const users = storageService.getUsers();
+
+    if (users[email]) {
+      return { error: new Error('Cet email est déjà utilisé') };
     }
-  });
 
-  return { data, error };
+    const userId = generateId();
+
+    users[email] = {
+      id: userId,
+      email,
+      password,
+    };
+
+    storageService.saveUsers(users);
+
+    const profiles = storageService.getProfiles();
+    profiles.push({
+      id: userId,
+      nom_complet,
+      numero_inscription,
+      role,
+      created_at: new Date().toISOString(),
+    });
+
+    storageService.saveProfiles(profiles);
+
+    return { data: { user: { id: userId, email } }, error: null };
+  } catch (error: any) {
+    return { error };
+  }
 }
 
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
+  try {
+    const users = storageService.getUsers();
 
-  return { data, error };
+    if (!users[email] || users[email].password !== password) {
+      return { error: new Error('Email ou mot de passe incorrect') };
+    }
+
+    const user = { id: users[email].id, email };
+    storageService.setCurrentUser(user);
+
+    return { data: { user }, error: null };
+  } catch (error: any) {
+    return { error };
+  }
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+  storageService.clear();
+  return { error: null };
 }
 
-export async function getCurrentUser() {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+export async function getCurrentUser(): Promise<User | null> {
+  return storageService.getCurrentUser();
 }
 
-export async function getCurrentProfile() {
+export async function getCurrentProfile(): Promise<Profile | null> {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data;
+  const profiles = storageService.getProfiles();
+  return profiles.find(p => p.id === user.id) || null;
 }

@@ -1,9 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
-import { Profile } from '@/lib/supabase';
+import { storageService, type User, type Profile } from '@/lib/storage';
 
 type AuthContextType = {
   user: User | null;
@@ -23,40 +21,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    const currentUser = storageService.getCurrentUser();
+    setUser(currentUser);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      (async () => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await loadProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
-        }
-      })();
-    });
-
-    return () => subscription.unsubscribe();
+    if (currentUser) {
+      loadProfile(currentUser.id);
+    } else {
+      setLoading(false);
+    }
   }, []);
 
-  async function loadProfile(userId: string) {
+  function loadProfile(userId: string) {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      setProfile(data);
+      const profiles = storageService.getProfiles();
+      const userProfile = profiles.find(p => p.id === userId);
+      setProfile(userProfile || null);
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
