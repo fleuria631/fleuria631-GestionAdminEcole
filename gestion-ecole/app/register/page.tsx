@@ -11,8 +11,7 @@ export default function RegisterPage() {
     nom_complet: '',
     numero_inscription: '',
     email: '',
-    password: '',
-    role: 'etudiant' as 'etudiant' | 'admin'
+    password: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,8 +26,7 @@ export default function RegisterPage() {
         formData.email,
         formData.password,
         formData.nom_complet,
-        formData.numero_inscription,
-        formData.role
+        formData.numero_inscription
       );
 
       if (error) throw error;
@@ -107,20 +105,6 @@ export default function RegisterPage() {
               required
               minLength={6}
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Type de compte
-            </label>
-            <select
-              className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'etudiant' | 'admin' })}
-            >
-              <option value="etudiant">Étudiant</option>
-              <option value="admin">Administrateur</option>
-            </select>
           </div>
 
           <button

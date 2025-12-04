@@ -63,6 +63,31 @@ function getCurrentUser(): User | null {
   }
 }
 
+function initializeDefaultAdmin() {
+  const users = getUsers();
+  const profiles = getProfiles();
+
+  if (Object.keys(users).length === 0) {
+    const adminId = 'admin-001';
+    users['admin@example.com'] = {
+      id: adminId,
+      email: 'admin@example.com',
+      password: 'admin123',
+    };
+
+    profiles.push({
+      id: adminId,
+      nom_complet: 'Administrateur',
+      numero_inscription: 'ADM-001',
+      role: 'admin',
+      created_at: new Date().toISOString(),
+    });
+
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+  }
+}
+
 export const storageService = {
   getUsers,
   getProfiles,
@@ -91,5 +116,9 @@ export const storageService = {
 
   clear() {
     localStorage.removeItem(CURRENT_USER_KEY);
+  },
+
+  initializeDefaultAdmin() {
+    initializeDefaultAdmin();
   }
 };

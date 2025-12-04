@@ -21,6 +21,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    storageService.initializeDefaultAdmin();
+
     const currentUser = storageService.getCurrentUser();
     setUser(currentUser);
 
