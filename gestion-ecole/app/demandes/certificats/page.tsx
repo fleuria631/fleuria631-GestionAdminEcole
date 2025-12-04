@@ -1,12 +1,23 @@
 'use client';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createDemande } from "@/lib/demandes";
 import { useRouter } from "next/navigation";
 
 export default function CertificatPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsReady(true);
+      }
+    }
+  }, [authLoading, user, router]);
   const [selectedType] = useState("scolarite");
   const [nomPere, setNomPere] = useState("");
   const [nomMere, setNomMere] = useState("");
@@ -42,6 +53,14 @@ export default function CertificatPage() {
       setLoading(false);
     }
   };
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-gray-600">Chargement de vos informations...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">

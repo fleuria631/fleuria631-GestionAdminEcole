@@ -28,19 +28,21 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<'all' | 'en_attente' | 'en_cours' | 'terminee'>('all');
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (authLoading) return;
+
+    if (!user) {
       router.push('/login');
       return;
     }
 
-    if (profile && profile.role !== 'admin') {
+    if (!profile) return;
+
+    if (profile.role !== 'admin') {
       router.push('/');
       return;
     }
 
-    if (user && profile?.role === 'admin') {
-      loadDemandes();
-    }
+    loadDemandes();
   }, [user, profile, authLoading]);
 
   async function loadDemandes() {

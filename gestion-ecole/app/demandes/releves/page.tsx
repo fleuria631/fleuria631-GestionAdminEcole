@@ -1,12 +1,23 @@
 'use client';
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { createDemande } from "@/lib/demandes";
 import { useRouter } from "next/navigation";
 
 export default function RelevesPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        router.push('/login');
+      } else {
+        setIsReady(true);
+      }
+    }
+  }, [authLoading, user, router]);
   const niveaux = ["L1", "L2", "L3", "M1", "M2"];
   const prixParReleve = 2000;
   const currentYear = new Date().getFullYear();
@@ -71,6 +82,14 @@ export default function RelevesPage() {
       setLoading(false);
     }
   };
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-gray-600">Chargement de vos informations...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
