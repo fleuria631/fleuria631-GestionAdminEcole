@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -47,9 +46,11 @@ export function UserMenu() {
                   Tableau de bord
                 </Link>
               )}
-              <Link className="block p-2 hover:bg-gray-100 rounded" href="/mes-demandes">
-                Mes demandes
-              </Link>
+              {profile?.role === 'etudiant' && (
+                <Link className="block p-2 hover:bg-gray-100 rounded" href="/mes-demandes">
+                  Mes demandes
+                </Link>
+              )}
               <button
                 onClick={handleLogout}
                 className="block w-full p-2 text-left hover:bg-gray-100 rounded text-red-600"
