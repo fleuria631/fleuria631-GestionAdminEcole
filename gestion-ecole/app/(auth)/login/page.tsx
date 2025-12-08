@@ -44,7 +44,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -60,9 +60,17 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe
-            </label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Mot de passe
+              </label>
+              <Link 
+                href="/forgotpassword" 
+                className="text-sm text-green-600 hover:underline"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
             <input
               type="password"
               className="w-full border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -74,13 +82,13 @@ export default function LoginPage() {
           </div>
 
           <button
-            type="submit"
+            onClick={handleSubmit}
             disabled={loading}
             className="bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed font-medium mt-2"
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
-        </form>
+        </div>
 
         <p className="text-center text-sm text-gray-600 mt-4">
           Pas encore de compte ?{' '}
